@@ -141,8 +141,11 @@ find ~/.config/pear ~/Library/Application\ Support/pear -name "LOCK" -o -name "*
 pear -v
 ```
 
+**Clone location warning (multi‑repo setups):**
+- Do **not** clone into `/Applications/MAMP/htdocs/intercom` if that repo already exists.
+- If you’re working in a separate workspace (e.g., `/Applications/MAMP/htdocs/intercom-test`), clone **inside that workspace**:
 ```bash
-git clone https://github.com/Trac-Systems/intercom
+git clone https://github.com/Trac-Systems/intercom ./intercom
 cd intercom/trac/contract-test-latest
 npm install
 ```
