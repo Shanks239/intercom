@@ -9,8 +9,8 @@ import { createConfig as createMsbConfig, ENV as MSB_ENV } from 'trac-msb/src/co
 import { ensureTextCodecs } from 'trac-peer/src/textCodec.js';
 import { getPearRuntime, ensureTrailingSlash } from 'trac-peer/src/runnerArgs.js';
 import { Terminal } from 'trac-peer/src/terminal/index.js';
-import SampleProtocol from './contract/protocol.js';
-import SampleContract from './contract/contract.js';
+import PollProtocol from './contract/protocol.js';
+import PollContract from './contract/contract.js';
 import { Timer } from './features/timer/index.js';
 import Sidechannel from './features/sidechannel/index.js';
 import ScBridge from './features/sc-bridge/index.js';
@@ -305,8 +305,6 @@ const scBridgeDebugRaw =
   '';
 const scBridgeDebug = parseBool(scBridgeDebugRaw, false);
 
-// Optional: override DHT bootstrap nodes (host:port list) for faster local tests.
-// Note: this affects all Hyperswarm joins (subnet replication + sidechannels).
 const peerDhtBootstrapRaw =
   (flags['peer-dht-bootstrap'] && String(flags['peer-dht-bootstrap'])) ||
   (flags['dht-bootstrap'] && String(flags['dht-bootstrap'])) ||
@@ -397,8 +395,8 @@ const peer = new Peer({
   config: peerConfig,
   msb,
   wallet: new Wallet(),
-  protocol: SampleProtocol,
-  contract: SampleContract,
+  protocol: PollProtocol,
+  contract: PollContract,
 });
 await peer.ready();
 
@@ -414,7 +412,7 @@ if (!subnetBootstrap) {
 }
 
 console.log('');
-console.log('====================INTERCOM ====================');
+console.log('================ P2P POLL CREATOR ================');
 const msbChannel = b4a.toString(msbConfig.channel, 'utf8');
 const msbStorePath = path.join(msbStoresDirectory, msbStoreName);
 const peerStorePath = path.join(peerStoresDirectory, peerStoreNameRaw);
@@ -442,7 +440,7 @@ if (scBridgeEnabled) {
   const portDisplay = Number.isSafeInteger(scBridgePort) ? scBridgePort : 49222;
   console.log('SC-Bridge:', `ws://${scBridgeHost}:${portDisplay}`);
 }
-console.log('================================================================');
+console.log('===================================================');
 console.log('');
 
 const admin = await peer.base.view.get('admin');
