@@ -3,7 +3,6 @@ import { bufferToBigInt, bigIntToDecimalString } from "trac-msb/src/utils/amount
 import b4a from "b4a";
 import fs from "fs";
 
-// ─── Keep the original invite/welcome helpers unchanged ────────────────────
 const stableStringify = (value) => {
     if (value === null || value === undefined) return 'null';
     if (typeof value !== 'object') return JSON.stringify(value);
@@ -25,7 +24,6 @@ const parseArgFile = (raw) => {
     } catch {}
     return null;
 };
-// ──────────────────────────────────────────────────────────────────────────
 
 class PollProtocol extends Protocol {
 
@@ -51,14 +49,12 @@ class PollProtocol extends Protocol {
     mapTxCommand(command) {
         const obj = { type: '', value: null };
 
-        // Simple string commands
         if (command === 'list_polls') {
             obj.type  = 'listPolls';
             obj.value = null;
             return obj;
         }
 
-        // JSON payload commands
         const json = this.safeJsonParse(command);
         if (!json || json.op === undefined) return null;
 
@@ -108,7 +104,7 @@ class PollProtocol extends Protocol {
 
         // ── /create_poll ──────────────────────────────────────────────────
         if (this.input.startsWith('/create_poll')) {
-            const args    = this.parseArgs(input);
+            const args     = this.parseArgs(input);
             const question = args.question || args.q;
             const optRaw   = args.options  || args.opts || args.o;
             const expires  = args.expires  ? Number(args.expires) : 0;
@@ -124,8 +120,8 @@ class PollProtocol extends Protocol {
                 return;
             }
 
-            const payload = JSON.stringify({ op: 'create_poll', question, options, expires });
-            await this.peer.protocol.api.tx(payload);
+            const cmd = JSON.stringify({ op: 'create_poll', question, options, expires });
+            await this.customCommand('/tx --command \'' + cmd + '\'');
             return;
         }
 
@@ -140,8 +136,8 @@ class PollProtocol extends Protocol {
                 return;
             }
 
-            const payload = JSON.stringify({ op: 'cast_vote', poll_id, option });
-            await this.peer.protocol.api.tx(payload);
+            const cmd = JSON.stringify({ op: 'cast_vote', poll_id, option });
+            await this.customCommand('/tx --command \'' + cmd + '\'');
             return;
         }
 
@@ -155,14 +151,14 @@ class PollProtocol extends Protocol {
                 return;
             }
 
-            const payload = JSON.stringify({ op: 'poll_results', poll_id });
-            await this.peer.protocol.api.tx(payload);
+            const cmd = JSON.stringify({ op: 'poll_results', poll_id });
+            await this.customCommand('/tx --command \'' + cmd + '\'');
             return;
         }
 
         // ── /list_polls ───────────────────────────────────────────────────
         if (this.input.startsWith('/list_polls')) {
-            await this.peer.protocol.api.tx('list_polls');
+            await this.customCommand('/tx --command \'list_polls\'');
             return;
         }
 
@@ -195,15 +191,15 @@ class PollProtocol extends Protocol {
             const fee            = feeBuf ? bigIntToDecimalString(bufferToBigInt(feeBuf)) : 0;
             console.log({
                 peerMsbAddress,
-                peerMsbBalance: balance,
-                msbFee:         fee,
+                peerMsbBalance:      balance,
+                msbFee:              fee,
                 connectedValidators: this.peer.msbClient.getConnectedValidatorsCount(),
                 txv,
             });
             return;
         }
 
-        // ── Sidechannel commands (kept from original, unchanged) ──────────
+        // ── /sc_join ──────────────────────────────────────────────────────
         if (this.input.startsWith('/sc_join')) {
             const args    = this.parseArgs(input);
             const name    = args.channel || args.ch || args.name;
@@ -217,12 +213,16 @@ class PollProtocol extends Protocol {
             return;
         }
 
+        // ── /sc_send ──────────────────────────────────────────────────────
         if (this.input.startsWith('/sc_send')) {
             const args    = this.parseArgs(input);
             const name    = args.channel || args.ch || args.name;
             const message = args.message || args.msg;
             const invite  = parseArgFile(args.invite);
-            if (!name || message === undefined) { console.log('Usage: /sc_send --channel "<name>" --message "<text>"'); return; }
+            if (!name || message === undefined) {
+                console.log('Usage: /sc_send --channel "<name>" --message "<text>"');
+                return;
+            }
             if (!this.peer.sidechannel) { console.log('Sidechannel not initialized.'); return; }
             if (invite) this.peer.sidechannel.acceptInvite(String(name), invite, null);
             await this.peer.sidechannel.addChannel(String(name));
@@ -230,12 +230,16 @@ class PollProtocol extends Protocol {
             return;
         }
 
+        // ── /sc_open ──────────────────────────────────────────────────────
         if (this.input.startsWith('/sc_open')) {
             const args    = this.parseArgs(input);
             const name    = args.channel || args.ch || args.name;
             const via     = args.via || this.peer.sidechannel?.entryChannel || null;
             const invite  = parseArgFile(args.invite);
-            const welcome = parseArgFile(args.welcome) || (typeof this.peer.sidechannel?.getWelcome === 'function' ? this.peer.sidechannel.getWelcome(String(name)) : null);
+            const welcome = parseArgFile(args.welcome)
+                || (typeof this.peer.sidechannel?.getWelcome === 'function'
+                    ? this.peer.sidechannel.getWelcome(String(name))
+                    : null);
             if (!name) { console.log('Usage: /sc_open --channel "<name>"'); return; }
             if (!this.peer.sidechannel) { console.log('Sidechannel not initialized.'); return; }
             if (!via) { console.log('No entry channel. Pass --via "<channel>".'); return; }
@@ -244,6 +248,7 @@ class PollProtocol extends Protocol {
             return;
         }
 
+        // ── /sc_stats ─────────────────────────────────────────────────────
         if (this.input.startsWith('/sc_stats')) {
             if (!this.peer.sidechannel) { console.log('Sidechannel not initialized.'); return; }
             console.log({
