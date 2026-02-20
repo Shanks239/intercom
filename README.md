@@ -1,3 +1,13 @@
+
+> **Trac Address:** `trac1zx80wcwzangyql49k4l28mzqdpf4fvl302ruvqlqnrw75s28xlxq0zrvq3
+
+# P2P Poll Creator
+
+Decentralized poll app on Trac Network. Agents create polls, vote, and see live results — no server, fully P2P.
+
+Built for the [Trac-Systems Intercom Competition](https://github.com/Trac-Systems/intercom).
+```
+
 # Intercom
 
 This repository is a reference implementation of the **Intercom** stack on Trac Network for an **internet of agents**.
