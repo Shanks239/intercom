@@ -1,10 +1,10 @@
 {
-  "name": "contract-test-latest",
+  "name": "p2p-poll-creator",
   "version": "0.0.1",
   "type": "module",
   "main": "index.js",
   "pear": {
-    "name": "contract-test-latest",
+    "name": "p2p-poll-creator",
     "type": "terminal"
   },
   "dependencies": {
