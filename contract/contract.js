@@ -87,40 +87,36 @@ class PollContract extends Contract {
      * Rules: one vote per address, poll must exist, poll must not be expired.
      * Stores: vote/<poll_id>/<address>
      */
-    async castVote() {
-        const pollId     = this.value.poll_id;
-        const optionIdx  = this.value.option; // 1-based
+  async castVote() {
+    const pollId    = this.value.poll_id;
+    const optionIdx = this.value.option;
 
-        const poll = await this.get('poll/' + pollId);
-        if (poll === null) {
-            return new Error('Poll not found: ' + pollId);
-        }
+    const poll = await this.get('poll/' + pollId);
+    if (poll === null) return new Error('Poll not found: ' + pollId);
 
-        // Check expiry
-        if (poll.expiresAt > 0) {
-            const now = await this.get('currentTime') ?? Date.now();
-            if (now > poll.expiresAt) {
-                return new Error('Poll is closed');
-            }
-        }
-
-        // Validate option index (1-based)
-        this.assert(
-            Number.isInteger(optionIdx) && optionIdx >= 1 && optionIdx <= poll.options.length,
-            new Error('Invalid option index')
-        );
-
-        // One vote per address
-        const voteKey = 'vote/' + pollId + '/' + this.address;
-        const existing = await this.get(voteKey);
-        if (existing !== null) {
-            return new Error('Already voted on this poll');
-        }
-
-        await this.put(voteKey, optionIdx);
-        console.log('Vote cast on poll', pollId, 'option', optionIdx, 'by', this.address);
+    if (poll.expiresAt > 0) {
+        const now = await this.get('currentTime') ?? Date.now();
+        if (now > poll.expiresAt) return new Error('Poll is closed');
     }
 
+    this.assert(
+        Number.isInteger(optionIdx) && optionIdx >= 1 && optionIdx <= poll.options.length,
+        new Error('Invalid option index')
+    );
+
+    const voteKey = 'vote/' + pollId + '/' + this.address;
+    const existing = await this.get(voteKey);
+    if (existing !== null) return new Error('Already voted on this poll');
+
+    await this.put(voteKey, optionIdx);
+
+    const countKey = 'votes/count/' + pollId;
+    const count = await this.get(countKey) ?? 0;
+    await this.put('votes/addr/' + pollId + '/' + (count + 1), this.address);
+    await this.put(countKey, count + 1);
+
+    console.log('Vote cast on poll', pollId, 'option', optionIdx, 'by', this.address);
+}
     /**
      * Reads and tallies results for a poll.
      * Does not modify state — read only.
